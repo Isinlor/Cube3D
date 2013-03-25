@@ -11,7 +11,6 @@ function setPixel(imageData, x, y, rgb=[0,0,0], a = 255) {
 function drawLine(point1, point2) {
 	var firstPoint = point1;
 	var secondPoint = point2;
-	console.log('Draw line:', firstPoint, secondPoint);
 	if (secondPoint[1] == firstPoint[1] && secondPoint[0] == firstPoint[0]) {
     	setPixel(imageData, secondPoint[1], secondPoint[0]);
 	} else {
@@ -45,6 +44,30 @@ function drawLine(point1, point2) {
 	}
 	return;
 }
+
+function roundPoint (point) {
+	point[0] = Math.round(point[0]);
+	point[1] = Math.round(point[1]);
+}
+function translatePoint (point, x, y) {
+	point[0] = point[0] + x;
+	point[1] = point[1] + y;
+	return point;
+}
+
+function rotatePoint (point, x, y, theta) {
+	var cosTheta = Math.cos(theta);
+	var sinTheta = Math.sin(theta);
+	translatePoint(point, -x, -y);
+    var p0 = point[0]*cosTheta-point[1]*sinTheta;
+    var p1 = point[0]*sinTheta+point[1]*cosTheta;
+	point[0] = p0;
+	point[1] = p1;
+	roundPoint(point);
+	translatePoint(point, x, y);
+	return point;
+}
+
 function drawTriangle(triangle){
 	drawLine(triangle[0], triangle[1]);
 	drawLine(triangle[1], triangle[2]);
@@ -52,25 +75,11 @@ function drawTriangle(triangle){
 }
 function translateTriangle(triangle, x, y) {
 	for (var i = triangle.length - 1; i >= 0; i--) {
-		triangle[i][0] = triangle[i][0]+x;
-		triangle[i][1] = triangle[i][1]+y;
+		translatePoint(triangle[i], x, y);
 	};
-}
-function rotatePoint (point, centerPoint, theta) {
-	var cosTheta = Math.cos(theta);
-	var sinTheta = Math.sin(theta);
-	point[0] = point[0] - centerPoint[0];
-	point[1] = point[1] - centerPoint[1];
-    var p0 = point[0]*cosTheta-point[1]*sinTheta;
-    var p1 = point[0]*sinTheta+point[1]*cosTheta;
-	point[0] = p0;
-	point[1] = p1;
-	point[0] = Math.round(point[0] + centerPoint[0]);
-	point[1] = Math.round(point[1] + centerPoint[1]);
 }
 function rotateTriangle (triangle, x, y, theta) {
 	for (var i = triangle.length - 1; i >= 0; i--) {
-		console.log("rotatePoint", i);
 		rotatePoint(triangle[i], x, y, theta);
 	};
 }
@@ -84,12 +93,11 @@ function reset () {
 }
 function draw () {
 	reset();
-	var A = [200, 300];
-	var B = [300, 200];
+	var A = [200, 350];
+	var B = [350, 600];
 	var C = [200, 200];
 	var ABC = [A, B, C];
-	translateTriangle(ABC, 200, 200);
-	rotateTriangle(ABC, [400, 400], n);
+	rotateTriangle(ABC, 400, 400, n);
 	drawTriangle(ABC);
 	c.putImageData(imageData, 0, 0);
 	n = n + 0.1;
@@ -103,18 +111,14 @@ height = element.height;
 
 // create a new pixel array
 imageData = c.createImageData(width, height);
-var A = [200, 300];
-var B = [300, 200];
+var A = [200, 350];
+var B = [350, 600];
 var C = [200, 200];
 var ABC = [A, B, C];
 var n = 0;
 
 setInterval(draw, 10);
 
-setPixel(imageData, 400, 400, [255,0,0]);
-setPixel(imageData, 401, 401, [255,0,0]);
-setPixel(imageData, 400, 401, [255,0,0]);
-setPixel(imageData, 401, 400, [255,0,0]);
 // copy the image data back onto the canvas
 c.putImageData(imageData, 0, 0); // at coords 0,0
 </script>
