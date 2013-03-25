@@ -1,0 +1,69 @@
+<canvas id="canvas1" width="400" height="400"></canvas>
+<script>
+function setPixel(imageData, x, y, rgb=[0,0,0], a = 255) {
+    index = (x + y * imageData.width) * 4;
+    imageData.data[index+0] = rgb[0];
+    imageData.data[index+1] = rgb[1];
+    imageData.data[index+2] = rgb[2];
+    imageData.data[index+3] = a;
+    return;
+}
+function drawLine(point1, point2) {
+	var firstPoint = point1;
+	var secondPoint = point2;
+	console.log('Draw line:', firstPoint, secondPoint);
+	if (B[1] == firstPoint[1] && secondPoint[0] == firstPoint[0]) {
+    	setPixel(imageData, secondPoint[1], secondPoint[0]);
+	} else {
+		var dx = firstPoint[1] - secondPoint[1]; 
+		var sx = (dx < 0) ? -1 : 1;
+		var dy = firstPoint[0] - secondPoint[0]; 
+		var sy = (dy < 0) ? -1 : 1;
+
+		if (Math.abs(dy) < Math.abs(dx))
+		{    
+		    var a = dy / dx;
+		    var b = secondPoint[0] - a * secondPoint[1];
+		    var i = secondPoint[1];
+		    while (i != firstPoint[1])
+		    {
+		        setPixel(imageData, Math.round(a*i + b), i);
+		        i += sx;
+		    }
+		} 
+		else 
+		{
+		    var a = dx / dy;
+		    var b = secondPoint[1] - a * secondPoint[0];
+		    var i = secondPoint[0];
+		    while (i != firstPoint[0])
+		    {
+		        setPixel(imageData, i, Math.round(a*i + b));
+		        i += sy;
+		    }    
+		}
+	}
+	return;
+}
+function drawTriangle(a, b, c){
+	drawLine(a, b);
+	drawLine(b, c);
+	drawLine(c, a);
+}
+element = document.getElementById("canvas1");
+c = element.getContext("2d");
+
+// read the width and height of the canvas
+width = element.width;
+height = element.height;
+
+// create a new pixel array
+imageData = c.createImageData(width, height);
+
+var A = [40, 60];
+var B = [90, 150];
+var C = [200, 200];
+drawTriangle(A, B, C);
+// copy the image data back onto the canvas
+c.putImageData(imageData, 0, 0); // at coords 0,0
+</script>
