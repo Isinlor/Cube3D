@@ -9,22 +9,20 @@ function setPixel(imageData, x, y, rgb=[0,0,0], a = 255) {
     return;
 }
 function drawLine(point1, point2) {
-	var firstPoint = point1;
-	var secondPoint = point2;
-	if (secondPoint[1] == firstPoint[1] && secondPoint[0] == firstPoint[0]) {
-    	setPixel(imageData, secondPoint[1], secondPoint[0]);
+	if (point2[1] == point1[1] && point2[0] == point1[0]) {
+    	setPixel(imageData, point2[1], point2[0]);
 	} else {
-		var dx = firstPoint[1] - secondPoint[1]; 
+		var dx = point1[1] - point2[1]; 
 		var sx = (dx < 0) ? -1 : 1;
-		var dy = firstPoint[0] - secondPoint[0]; 
+		var dy = point1[0] - point2[0]; 
 		var sy = (dy < 0) ? -1 : 1;
 
 		if (Math.abs(dy) < Math.abs(dx))
 		{    
 		    var a = dy / dx;
-		    var b = secondPoint[0] - a * secondPoint[1];
-		    var i = secondPoint[1];
-		    while (i != firstPoint[1])
+		    var b = point2[0] - a * point2[1];
+		    var i = point2[1];
+		    while (i != point1[1])
 		    {
 		        setPixel(imageData, Math.round(a*i + b), i);
 		        i += sx;
@@ -33,9 +31,9 @@ function drawLine(point1, point2) {
 		else 
 		{
 		    var a = dx / dy;
-		    var b = secondPoint[1] - a * secondPoint[0];
-		    var i = secondPoint[0];
-		    while (i != firstPoint[0])
+		    var b = point2[1] - a * point2[0];
+		    var i = point2[0];
+		    while (i != point1[0])
 		    {
 		        setPixel(imageData, i, Math.round(a*i + b));
 		        i += sy;
@@ -45,44 +43,6 @@ function drawLine(point1, point2) {
 	return;
 }
 
-function roundPoint (point) {
-	point[0] = Math.round(point[0]);
-	point[1] = Math.round(point[1]);
-}
-function translatePoint (point, x, y) {
-	point[0] = point[0] + x;
-	point[1] = point[1] + y;
-	return point;
-}
-
-function rotatePoint (point, x, y, theta) {
-	var cosTheta = Math.cos(theta);
-	var sinTheta = Math.sin(theta);
-	translatePoint(point, -x, -y);
-    var p0 = point[0]*cosTheta-point[1]*sinTheta;
-    var p1 = point[0]*sinTheta+point[1]*cosTheta;
-	point[0] = p0;
-	point[1] = p1;
-	roundPoint(point);
-	translatePoint(point, x, y);
-	return point;
-}
-
-function drawTriangle(triangle){
-	drawLine(triangle[0], triangle[1]);
-	drawLine(triangle[1], triangle[2]);
-	drawLine(triangle[2], triangle[0]);
-}
-function translateTriangle(triangle, x, y) {
-	for (var i = triangle.length - 1; i >= 0; i--) {
-		translatePoint(triangle[i], x, y);
-	};
-}
-function rotateTriangle (triangle, x, y, theta) {
-	for (var i = triangle.length - 1; i >= 0; i--) {
-		rotatePoint(triangle[i], x, y, theta);
-	};
-}
 function reset () {
 	for (var i=0;i<imageData.data.length;i+=4) {
 	  // imageData.data[i+0]=255;
@@ -93,17 +53,77 @@ function reset () {
 }
 function draw () {
 	reset();
-	var A = [200, 350];
-	var B = [350, 600];
-	var C = [200, 200];
-	var ABC = [A, B, C];
-	rotateTriangle(ABC, 400, 400, n);
-	drawTriangle(ABC);
+	var A = new point(200, 200);
+	var B = new point(400, 400);
+	var C = new point(400, 200);
+	var ABC = new triangle(A, B, C);
+	var cen = ABC.getCenter();
+	setPixel(imageData, cen.x, cen.y);
+	ABC.rotate(cen, n);
+	ABC.draw();
 	c.putImageData(imageData, 0, 0);
 	n = n + 0.1;
 }
 element = document.getElementById("canvas1");
 c = element.getContext("2d");
+
+var point = function point (x, y) {
+	this.x = x;
+	this.y = y;
+}
+point.prototype = {
+	rotate: function (center, theta) {
+		var cosTheta = Math.cos(theta);
+		var sinTheta = Math.sin(theta);
+		this.translate(-center.x, -center.y);
+	    var p0 = this.x*cosTheta-this.y*sinTheta;
+	    var p1 = this.x*sinTheta+this.y*cosTheta;
+		this.x = p0;
+		this.y = p1;
+		this.round();
+		this.translate(center.x, center.y);
+	},
+	translate: function (x, y) {
+		this.x += x;
+		this.y += y;
+	},
+	round: function() {
+		this.x = Math.round(this.x);
+		this.y = Math.round(this.y);
+	},
+	draw: function() {
+
+	}
+}
+var triangle = function triangle (A, B, C) {
+	this.A = A;
+	this.B = B;
+	this.C = C;
+}
+triangle.prototype = { 
+	rotate: function(center, theta) {
+		this.A.rotate(center, theta);
+		this.B.rotate(center, theta);
+		this.C.rotate(center, theta);
+	},
+	translate: function(x, y) {
+		this.A.translate(x, y);
+		this.B.translate(x, y);
+		this.C.translate(x, y);
+	},
+	draw: function() {
+		drawLine([this.A.x, this.A.y], [this.B.x, this.B.y]);
+		drawLine([this.B.x, this.B.y], [this.C.x, this.C.y]);
+		drawLine([this.C.x, this.C.y], [this.A.x, this.A.y]);
+	},
+	getCenter: function() {
+		var center = new point();
+		center.x = (this.A.x + this.B.x + this.C.x)/3;
+		center.y = (this.A.y + this.B.y + this.C.y)/3;
+		center.round();
+		return center;
+	}
+}
 
 // read the width and height of the canvas
 width = element.width;
@@ -111,11 +131,21 @@ height = element.height;
 
 // create a new pixel array
 imageData = c.createImageData(width, height);
-var A = [200, 350];
-var B = [350, 600];
-var C = [200, 200];
-var ABC = [A, B, C];
+// var A = [200, 350];
+// var B = [350, 600];
+// var C = [200, 200];
+// var ABC = [A, B, C];
 var n = 0;
+
+
+var A = new point(200, 200);
+var B = new point(400, 400);
+var C = new point(400, 200);
+var ABC = new triangle(A, B, C);
+var cen = ABC.getCenter();
+setPixel(imageData, cen.x, cen.y);
+ABC.rotate(cen, 3);
+ABC.draw();
 
 setInterval(draw, 10);
 
