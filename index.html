@@ -1,4 +1,4 @@
-<canvas id="canvas1" width="800" height="800"></canvas>
+<canvas id="canvas1" width="400" height="400"></canvas>
 <script>
 function setPixel(imageData, x, y, rgb=[0,0,0], a = 255) {
     index = (x + y * imageData.width) * 4;
@@ -44,25 +44,20 @@ function drawLine(point1, point2) {
 }
 
 function reset () {
-	for (var i=0;i<imageData.data.length;i+=4) {
-	  // imageData.data[i+0]=255;
-	  // imageData.data[i+1]=255;
-	  // imageData.data[i+2]=255;
-	  imageData.data[i+3]=0;
-    }
+ 	imageData = c.createImageData(imageData);
 }
 function draw () {
 	reset();
 	var A = new point(200, 200);
-	var B = new point(400, 400);
-	var C = new point(400, 200);
+	var B = new point(300, 300);
+	var C = new point(300, 200);
 	var ABC = new triangle(A, B, C);
 	var cen = ABC.getCenter();
 	setPixel(imageData, cen.x, cen.y);
 	ABC.rotate(cen, n);
 	ABC.draw();
 	c.putImageData(imageData, 0, 0);
-	n = n + 0.1;
+	n += 0.1;
 }
 element = document.getElementById("canvas1");
 c = element.getContext("2d");
@@ -71,6 +66,12 @@ var point = function point (x, y) {
 	this.x = x;
 	this.y = y;
 }
+var point3d = function point3d (x, y, z) {
+	this.x = x;
+	this.y = y;
+	this.z = z;
+}
+
 point.prototype = {
 	rotate: function (center, theta) {
 		var cosTheta = Math.cos(theta);
@@ -95,6 +96,7 @@ point.prototype = {
 
 	}
 }
+
 var triangle = function triangle (A, B, C) {
 	this.A = A;
 	this.B = B;
@@ -131,23 +133,20 @@ height = element.height;
 
 // create a new pixel array
 imageData = c.createImageData(width, height);
-// var A = [200, 350];
-// var B = [350, 600];
-// var C = [200, 200];
-// var ABC = [A, B, C];
+
 var n = 0;
 
 
 var A = new point(200, 200);
-var B = new point(400, 400);
-var C = new point(400, 200);
+var B = new point(300, 300);
+var C = new point(300, 200);
 var ABC = new triangle(A, B, C);
 var cen = ABC.getCenter();
 setPixel(imageData, cen.x, cen.y);
 ABC.rotate(cen, 3);
 ABC.draw();
 
-setInterval(draw, 10);
+setInterval(draw, 1000/25);
 
 // copy the image data back onto the canvas
 c.putImageData(imageData, 0, 0); // at coords 0,0
