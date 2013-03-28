@@ -8,21 +8,21 @@ function setPixel(imageData, x, y, rgb=[0,0,0], a = 255) {
     imageData.data[index+3] = a;
     return;
 }
-function drawLine(point1, point2) {
-	if (point2[1] == point1[1] && point2[0] == point1[0]) {
-    	setPixel(imageData, point2[1], point2[0]);
+function drawLine(A, B) {
+	if (B.y == A.y && B.x == A.x) {
+    	setPixel(imageData, B.y, B.x);
 	} else {
-		var dx = point1[1] - point2[1]; 
+		var dx = A.y - B.y; 
 		var sx = (dx < 0) ? -1 : 1;
-		var dy = point1[0] - point2[0]; 
+		var dy = A.x - B.x; 
 		var sy = (dy < 0) ? -1 : 1;
 
 		if (Math.abs(dy) < Math.abs(dx))
 		{    
 		    var a = dy / dx;
-		    var b = point2[0] - a * point2[1];
-		    var i = point2[1];
-		    while (i != point1[1])
+		    var b = B.x - a * B.y;
+		    var i = B.y;
+		    while (i != A.y)
 		    {
 		        setPixel(imageData, Math.round(a*i + b), i);
 		        i += sx;
@@ -31,9 +31,9 @@ function drawLine(point1, point2) {
 		else 
 		{
 		    var a = dx / dy;
-		    var b = point2[1] - a * point2[0];
-		    var i = point2[0];
-		    while (i != point1[0])
+		    var b = B.y - a * B.x;
+		    var i = B.x;
+		    while (i != A.x)
 		    {
 		        setPixel(imageData, i, Math.round(a*i + b));
 		        i += sy;
@@ -59,17 +59,68 @@ function draw () {
 	c.putImageData(imageData, 0, 0);
 	n += 0.1;
 }
+function draw3d () {
+	reset();
+	var A = new point3d(150, 150, 150);
+	 m = new cube(A, 100);
+	 m.spine('y', n);
+	 m.spine('x', 0.2);
+	 m.draw();
+
+	c.putImageData(imageData, 0, 0);
+	n += 0.01;
+}
 element = document.getElementById("canvas1");
 c = element.getContext("2d");
 
-var point = function point (x, y) {
-	this.x = x;
-	this.y = y;
-}
 var point3d = function point3d (x, y, z) {
 	this.x = x;
 	this.y = y;
 	this.z = z;
+}
+
+point3d.prototype = {
+	rotateAroundAxis: function(axis, center, theta) {
+		var coordName1 = '',
+			coordName2 = '',
+			point2d = new point();
+		switch (axis) {
+			case axis = 'x':
+				coordName1 = 'y';
+				coordName2 = 'z';
+				break;
+			case axis = 'y':
+				coordName1 = 'z';
+				coordName2 = 'x';
+				break;
+			case axis = 'z':
+				coordName1 = 'x';
+				coordName2 = 'y';
+				break;
+
+		}
+		point2d = this.projectionOn(coordName1, coordName2);
+		point2d.rotate(center, theta);
+		this[coordName1] = point2d.x;
+		this[coordName2] = point2d.y;
+
+	},
+	translate: function(x, y, z) {
+		this.x += x;
+		this.y += y;
+		this.z += z;
+	},
+	round: function() {
+
+	},
+	projectionOn: function (axis1, axis2) {
+		return new point(this[axis1], this[axis2]);
+	}
+}
+
+var point = function point (x, y) {
+	this.x = x;
+	this.y = y;
 }
 
 point.prototype = {
@@ -114,9 +165,9 @@ triangle.prototype = {
 		this.C.translate(x, y);
 	},
 	draw: function() {
-		drawLine([this.A.x, this.A.y], [this.B.x, this.B.y]);
-		drawLine([this.B.x, this.B.y], [this.C.x, this.C.y]);
-		drawLine([this.C.x, this.C.y], [this.A.x, this.A.y]);
+		drawLine(this.A, this.B);
+		drawLine(this.B, this.C);
+		drawLine(this.C, this.A);
 	},
 	getCenter: function() {
 		var center = new point();
@@ -127,6 +178,86 @@ triangle.prototype = {
 	}
 }
 
+var cube = function cube (A, a) {
+	this.a = a;
+	this.vertex = new Array();
+	this.vertex2d = new Array();
+	this.vertex[0] = A;
+	this.vertex[1] = new point3d(A.x+a, A.y, A.z);
+	this.vertex[2] = new point3d(A.x, A.y+a, A.z);
+	this.vertex[3] = new point3d(A.x, A.y, A.z+a);
+	this.vertex[4] = new point3d(A.x+a, A.y+a, A.z);
+	this.vertex[5] = new point3d(A.x+a, A.y, A.z+a);
+	this.vertex[6] = new point3d(A.x, A.y+a, A.z+a);
+	this.vertex[7] = new point3d(A.x+a, A.y+a, A.z+a);
+
+	this.center = new point3d();
+	this.center.x = this.vertex[0].x + this.a/2;
+	this.center.y = this.vertex[0].y + this.a/2;
+	this.center.z = this.vertex[0].z + this.a/2;
+}
+
+cube.prototype = {
+	translate: function (x, y, z) {
+		for (var i = this.vertex.length - 1; i >= 0; i--) {
+			this.vertex[i].x += x;
+			this.vertex[i].y += y;
+			this.vertex[i].z += z;
+		};
+	},
+	spine: function(axis, theta) {
+		var center2d = new point(),
+			projection = new point(),
+			coordName1 = '',
+			coordName2 = '';
+		switch (axis) {
+			case axis = 'x':
+				coordName1 = 'y';
+				coordName2 = 'z';
+				break;
+			case axis = 'y':
+				coordName1 = 'z';
+				coordName2 = 'x';
+				break;
+			case axis = 'z':
+				coordName1 = 'x';
+				coordName2 = 'y';
+				break;
+
+		}
+		center2d = this.center.projectionOn(coordName1, coordName2);
+		for (var i = this.vertex.length - 1; i >= 0; i--) {
+			this.vertex[i].rotateAroundAxis(axis, center2d, theta);
+		};
+	},
+	projectionOn: function (axis1, axis2) {
+		for (var i = this.vertex.length - 1; i >= 0; i--) {
+			this.vertex2d[i] = this.vertex[i].projectionOn(axis1, axis2);
+		};
+	},
+	draw: function() {
+		this.projectionOn('x', 'y');
+		drawLine(this.vertex2d[0], this.vertex2d[1]);
+		drawLine(this.vertex2d[0], this.vertex2d[2]);
+		drawLine(this.vertex2d[0], this.vertex2d[3]);
+
+		drawLine(this.vertex2d[1], this.vertex2d[4]);
+		drawLine(this.vertex2d[1], this.vertex2d[5]);
+
+		drawLine(this.vertex2d[2], this.vertex2d[4]);
+		drawLine(this.vertex2d[2], this.vertex2d[6]);
+
+		drawLine(this.vertex2d[3], this.vertex2d[5]);
+		drawLine(this.vertex2d[3], this.vertex2d[6]);
+
+		drawLine(this.vertex2d[4], this.vertex2d[7]);
+
+		drawLine(this.vertex2d[5], this.vertex2d[7]);
+
+		drawLine(this.vertex2d[6], this.vertex2d[7]);
+
+	}
+}
 // read the width and height of the canvas
 width = element.width;
 height = element.height;
@@ -142,11 +273,20 @@ var B = new point(300, 300);
 var C = new point(300, 200);
 var ABC = new triangle(A, B, C);
 var cen = ABC.getCenter();
-setPixel(imageData, cen.x, cen.y);
+//setPixel(imageData, cen.x, cen.y);
 ABC.rotate(cen, 3);
-ABC.draw();
-
-setInterval(draw, 1000/25);
+//ABC.draw();
+// p = new point3d(100, 200, 300);
+// p.rotateAroundAxis('y', A, Math.PI);
+// console.log(p);
+var A = new point3d(200, 200, 200);
+ m = new cube(A, 100);
+ m.spine('y', 1);
+ m.spine('x', 1);
+ m.draw();
+ console.log(m);
+setInterval(draw3d, 1000/30);
+//setInterval(draw, 1000/25);
 
 // copy the image data back onto the canvas
 c.putImageData(imageData, 0, 0); // at coords 0,0
