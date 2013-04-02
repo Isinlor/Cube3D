@@ -9,6 +9,9 @@
 //     return;
 // }
 function drawLine(A, B) {
+	if (typeof A == "undefined" || typeof B == "undefined") {
+		return;
+	}
 	// if (B.y == A.y && B.x == A.x) {
     //    	setPixel(imageData, B.y, B.x);
 	// } else {
@@ -47,36 +50,125 @@ function drawLine(A, B) {
 	c.stroke();
 }
 
-function reset () {
- 	//imageData = c.createImageData(imageData);
- 	 c.clearRect(0,0,400,400); 
+var point = function point (x, y) {
+	this.x = x;
+	this.y = y;
 }
-function draw () {
-	reset();
-	var A = new point(200, 200);
-	var B = new point(300, 300);
-	var C = new point(300, 200);
-	var ABC = new triangle(A, B, C);
-	var cen = ABC.getCenter();
-	setPixel(imageData, cen.x, cen.y);
-	ABC.rotate(cen, n);
-	ABC.draw();
-	//c.putImageData(imageData, 0, 0);
-	n += 0.1;
-}
-function draw3d () {
-	reset();
-	var A = new point3d(150, 150, 150);
-	 m = new cube(A, 150);
-	 m.spine('y', n);
-	 m.spine('x', n*0.2);
-	 m.draw();
 
-	//c.putImageData(imageData, 0, 0);
-	n += 0.01;
+point.prototype = {
+	rotate: function (center, theta) {
+		var cosTheta = Math.cos(theta);
+		var sinTheta = Math.sin(theta);
+		this.translate(-center.x, -center.y);
+	    var p0 = this.x*cosTheta-this.y*sinTheta;
+	    var p1 = this.x*sinTheta+this.y*cosTheta;
+		this.x = p0;
+		this.y = p1;
+		this.round();
+		this.translate(center.x, center.y);
+	},
+	translate: function (x, y) {
+		this.x += x;
+		this.y += y;
+	},
+	round: function() {
+		this.x = Math.round(this.x);
+		this.y = Math.round(this.y);
+	},
+	draw: function() {
+		c.fillRect(this.x, this.y, 1, 1);
+	}
 }
-element = document.getElementById("canvas1");
-c = element.getContext("2d");
+
+var line = function line (A, B) {
+	if (typeof A == "undefined") {
+		A = B;
+	}
+	if (typeof B == "undefined") {
+		B = A;
+	}
+	this.A = A;
+	this.B = B;
+	this.a = (this.A.y - this.B.y) / (this.A.x - this.B.x);
+	this.b = this.B.y - this.a*this.B.x;
+}
+
+line.prototype = {
+	draw: function() {
+		c.beginPath();
+		c.moveTo(this.A.x,this.A.y);
+		c.lineTo(this.B.x,this.B.y);
+		c.stroke();
+	},
+	getXfromY: function(y){
+
+	},
+	getYfromX: function(x){
+		var max = Math.max(this.A.x, this.B.x);
+		var min = Math.min(this.A.x, this.B.x);
+		console.log(max, min);
+		console.log(this.a, this.b);
+		if (x>=min && x<=max) {
+			return this.a*x + this.b;
+		}
+	}
+
+}
+
+var triangle = function triangle (A, B, C) {
+	this.A = A;
+	this.B = B;
+	this.C = C;
+}
+triangle.prototype = { 
+	rotate: function(center, theta) {
+		this.A.rotate(center, theta);
+		this.B.rotate(center, theta);
+		this.C.rotate(center, theta);
+	},
+	translate: function(x, y) {
+		this.A.translate(x, y);
+		this.B.translate(x, y);
+		this.C.translate(x, y);
+	},
+	draw: function() {
+		drawLine(this.A, this.B);
+		drawLine(this.B, this.C);
+		drawLine(this.C, this.A);
+	},
+	getCenter: function() {
+		var center = new point();
+		center.x = (this.A.x + this.B.x + this.C.x)/3;
+		center.y = (this.A.y + this.B.y + this.C.y)/3;
+		center.round();
+		return center;
+	}
+}
+
+var surface = function surface () {
+	this.points = new Array();
+	this.lines = new Array();
+}
+
+surface.prototype = {
+	setLine: function (A, B) {
+		var line_t = new line(A, B);
+		this.lines.push(line_t);
+	},
+	setPoint: function(A) {
+		this.points.push(A);
+	},
+	draw: function() {
+		for (var i = this.points.length - 1; i >= 0; i--) {
+			this.points[i].draw();
+		};
+		for (var i = this.lines.length - 1; i >= 0; i--) {
+			this.lines[i].draw();
+		};
+	}
+}
+
+
 
 var point3d = function point3d (x, y, z) {
 	this.x = x;
@@ -123,65 +215,6 @@ point3d.prototype = {
 	}
 }
 
-var point = function point (x, y) {
-	this.x = x;
-	this.y = y;
-}
-
-point.prototype = {
-	rotate: function (center, theta) {
-		var cosTheta = Math.cos(theta);
-		var sinTheta = Math.sin(theta);
-		this.translate(-center.x, -center.y);
-	    var p0 = this.x*cosTheta-this.y*sinTheta;
-	    var p1 = this.x*sinTheta+this.y*cosTheta;
-		this.x = p0;
-		this.y = p1;
-		this.round();
-		this.translate(center.x, center.y);
-	},
-	translate: function (x, y) {
-		this.x += x;
-		this.y += y;
-	},
-	round: function() {
-		this.x = Math.round(this.x);
-		this.y = Math.round(this.y);
-	},
-	draw: function() {
-		setPixel(imageData, this.x, this.y);
-	}
-}
-
-var triangle = function triangle (A, B, C) {
-	this.A = A;
-	this.B = B;
-	this.C = C;
-}
-triangle.prototype = { 
-	rotate: function(center, theta) {
-		this.A.rotate(center, theta);
-		this.B.rotate(center, theta);
-		this.C.rotate(center, theta);
-	},
-	translate: function(x, y) {
-		this.A.translate(x, y);
-		this.B.translate(x, y);
-		this.C.translate(x, y);
-	},
-	draw: function() {
-		drawLine(this.A, this.B);
-		drawLine(this.B, this.C);
-		drawLine(this.C, this.A);
-	},
-	getCenter: function() {
-		var center = new point();
-		center.x = (this.A.x + this.B.x + this.C.x)/3;
-		center.y = (this.A.y + this.B.y + this.C.y)/3;
-		center.round();
-		return center;
-	}
-}
 
 var cube = function cube (A, a) {
 	this.a = a;
@@ -236,9 +269,16 @@ cube.prototype = {
 		};
 	},
 	projectionOn: function (axis1, axis2) {
+		var maxZ = 0;
+		var maxZi;
 		for (var i = this.vertex.length - 1; i >= 0; i--) {
 			this.vertex2d[i] = this.vertex[i].projectionOn(axis1, axis2);
+			if (maxZ < this.vertex[i].z) {
+				maxZ = this.vertex[i].z;
+				maxZi = i;
+			}
 		};
+		delete this.vertex2d[maxZi];
 	},
 	draw: function() {
 		this.projectionOn('x', 'y');
@@ -264,79 +304,10 @@ cube.prototype = {
 	}
 }
 
-var line = function line (A, B) {
-	this.A = A;
-	this.B = B;
-	this.a = (this.A.y - this.B.y) / (this.A.x - this.B.x);
-	this.b = this.B.y - this.a*this.B.x;
-}
+element = document.getElementById("canvas1");
+c = element.getContext("2d");
+var n = 0;
 
-line.prototype = {
-	draw: function() {
-		drawLine(this.A, this.B);
-	},
-	getXfromY: function(y){
-
-	},
-	getYfromX: function(x){
-		var max = Math.max(this.A.x, this.B.x);
-		var min = Math.min(this.A.x, this.B.x);
-		console.log(max, min);
-		console.log(this.a, this.b);
-		if (x>=min && x<=max) {
-			return this.a*x + this.b;
-		}
-	}
-
-}
-
-var surface = function surface () {
-	this.points = new Array();
-	this.lines = new Array();
-}
-
-surface.prototype = {
-	setLine: function (A, B) {
-		var line_t = new line(A, B);
-		this.lines.push(line_t);
-	},
-	setPoint: function(A) {
-		this.points.push(A);
-	},
-	isPointVisible: function(A) {
-		 for (var i = this.lines.length - 1; i >= 0; i--) {
-		 	console.log(this.lines[i].getYfromX(A.x), A.y);
-		 	if (this.lines[i].getYfromX(A.x) >= A.y) {
-		 		return false;
-		 	}
-		// 	if(A.y>this.lines[i].A.y && A.y>this.lines[i].B.y){
-		// 		if(A.x>this.lines[i].A.x && A.x<this.lines[i].B.y){
-		// 			return false;
-		// 		}
-		// 		if(A.x<this.lines[i].A.x && A.x>this.lines[i].B.y){
-		// 			return false;
-		// 		}
-		// 	}
-		// 	if(A.y<this.lines[i].A.y && A.y<this.lines[i].B.y){
-		// 		if(A.x>this.lines[i].A.x && A.x<this.lines[i].B.y){
-		// 			return false;
-		// 		}
-		// 		if(A.x<this.lines[i].A.x && A.x>this.lines[i].B.y){
-		// 			return false;
-		// 		}
-		// 	}
-		};
-		return true;
-	},
-	draw: function() {
-		for (var i = this.points.length - 1; i >= 0; i--) {
-			this.points[i].draw();
-		};
-		for (var i = this.lines.length - 1; i >= 0; i--) {
-			this.lines[i].draw();
-		};
-	}
-}
 // read the width and height of the canvas
 width = element.width;
 height = element.height;
@@ -344,7 +315,34 @@ height = element.height;
 // create a new pixel array
 imageData = c.createImageData(width, height);
 
-var n = 0;
+function reset () {
+ 	//imageData = c.createImageData(imageData);
+ 	 c.clearRect(0,0,400,400); 
+}
+function draw () {
+	reset();
+	var A = new point(200, 200);
+	var B = new point(300, 300);
+	var C = new point(300, 200);
+	var ABC = new triangle(A, B, C);
+	var cen = ABC.getCenter();
+	cen.draw();
+	ABC.rotate(cen, n);
+	ABC.draw();
+	//c.putImageData(imageData, 0, 0);
+	n += 0.1;
+}
+function draw3d () {
+	reset();
+	var A = new point3d(150, 150, 150);
+	 m = new cube(A, 150);
+	 m.spine('y', n);
+	 m.spine('x', n*0.2);
+	 m.draw();
+
+	//c.putImageData(imageData, 0, 0);
+	n += 0.01;
+}
 
 // 2D stuffs
 // var A = new point(200, 200);
@@ -352,9 +350,10 @@ var n = 0;
 // var C = new point(300, 200);
 // var ABC = new triangle(A, B, C);
 // var cen = ABC.getCenter();
-// //setPixel(imageData, cen.x, cen.y);
+// cen.draw();
 // ABC.rotate(cen, 3);
-// //ABC.draw();
+// ABC.draw();
+ // setInterval(draw, 1000/25);
 
 // 3D stuffs
 var A = new point3d(200, 200, 200);
@@ -363,9 +362,6 @@ m.spine('y', 1);
 m.spine('x', 1);
 m.draw();
 setInterval(draw3d, 1000/30);
-// setInterval(draw, 1000/25);
-
-
 
 // 2D visibility test
 
