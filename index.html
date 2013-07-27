@@ -20,6 +20,7 @@ window.requestAnimFrame = (function(){
 //     imageData.data[index+3] = a;
 //     return;
 // }
+
 function drawLine(A, B) {
 	if (typeof A == "undefined" || typeof B == "undefined") {
 		return;
@@ -91,96 +92,6 @@ point.prototype = {
 		c.fillRect(this.x, this.y, 1, 1);
 	}
 }
-
-var line = function line (A, B) {
-	if (typeof A == "undefined") {
-		A = B;
-	}
-	if (typeof B == "undefined") {
-		B = A;
-	}
-	this.A = A;
-	this.B = B;
-	this.a = (this.A.y - this.B.y) / (this.A.x - this.B.x);
-	this.b = this.B.y - this.a*this.B.x;
-}
-
-line.prototype = {
-	draw: function() {
-		c.beginPath();
-		c.moveTo(this.A.x,this.A.y);
-		c.lineTo(this.B.x,this.B.y);
-		c.stroke();
-	},
-	getXfromY: function(y){
-
-	},
-	getYfromX: function(x){
-		var max = Math.max(this.A.x, this.B.x);
-		var min = Math.min(this.A.x, this.B.x);
-		console.log(max, min);
-		console.log(this.a, this.b);
-		if (x>=min && x<=max) {
-			return this.a*x + this.b;
-		}
-	}
-
-}
-
-var triangle = function triangle (A, B, C) {
-	this.A = A;
-	this.B = B;
-	this.C = C;
-}
-triangle.prototype = { 
-	rotate: function(center, theta) {
-		this.A.rotate(center, theta);
-		this.B.rotate(center, theta);
-		this.C.rotate(center, theta);
-	},
-	translate: function(x, y) {
-		this.A.translate(x, y);
-		this.B.translate(x, y);
-		this.C.translate(x, y);
-	},
-	draw: function() {
-		drawLine(this.A, this.B);
-		drawLine(this.B, this.C);
-		drawLine(this.C, this.A);
-	},
-	getCenter: function() {
-		var center = new point();
-		center.x = (this.A.x + this.B.x + this.C.x)/3;
-		center.y = (this.A.y + this.B.y + this.C.y)/3;
-		center.round();
-		return center;
-	}
-}
-
-var surface = function surface () {
-	this.points = new Array();
-	this.lines = new Array();
-}
-
-surface.prototype = {
-	setLine: function (A, B) {
-		var line_t = new line(A, B);
-		this.lines.push(line_t);
-	},
-	setPoint: function(A) {
-		this.points.push(A);
-	},
-	draw: function() {
-		for (var i = this.points.length - 1; i >= 0; i--) {
-			this.points[i].draw();
-		};
-		for (var i = this.lines.length - 1; i >= 0; i--) {
-			this.lines[i].draw();
-		};
-	}
-}
-
-
 
 var point3d = function point3d (x, y, z) {
 	this.x = x;
@@ -333,22 +244,11 @@ height = element.height;
 // create a new pixel array
 imageData = c.createImageData(width, height);
 
+var thetaX = 1, thetaY = 1, drag = 0;
+
 function reset () {
  	//imageData = c.createImageData(imageData);
  	 c.clearRect(0,0,400,400); 
-}
-function draw () {
-	reset();
-	var A = new point(200, 200);
-	var B = new point(300, 300);
-	var C = new point(300, 200);
-	var ABC = new triangle(A, B, C);
-	var cen = ABC.getCenter();
-	cen.draw();
-	ABC.rotate(cen, n);
-	ABC.draw();
-	//c.putImageData(imageData, 0, 0);
-	n += 0.1;
 }
 function draw3d () {
 	reset();
@@ -367,25 +267,6 @@ function draw3d () {
 	requestAnimFrame(draw3d);
 
 }
-
-// 2D stuffs
-// var A = new point(200, 200);
-// var B = new point(300, 300);
-// var C = new point(300, 200);
-// var ABC = new triangle(A, B, C);
-// var cen = ABC.getCenter();
-// cen.draw();
-// ABC.rotate(cen, 3);
-// ABC.draw();
- // setInterval(draw, 1000/25);
-
-// 3D stuffs
-var A = new point3d(200, 200, 200);
-var m = new cube(A, 100);
-m.spine('y', Math.PI/4);
-m.spine('x', Math.PI/4);
-m.draw();
-var thetaX = 1, thetaY = 1, drag = 0;
 
 // setInterval(draw3d, 1000/30);
 requestAnimFrame(draw3d);
@@ -414,49 +295,4 @@ element.addEventListener('mousedown', function(evt) {
 element.addEventListener('mouseup', function(evt) {
 	drag=false;
 }, false);
-
-
-
-// 2D visibility test
-
-function testDraw () {
-	reset();
-	var A = new point(240, 200);
-	var B = new point(340, 300);
-	var A2 = new point(120, 120);
-	var B2 = new point(300, 120);
-	var C = new point(350, 350);
-	var plane = new surface();
-	var cen = new point(250, 250);
-	C.rotate(cen, n);
-	//plane.setLine(A, B);
-	plane.setLine(A2, B2);
-	plane.setPoint(C);
-	is = plane.isPointVisible(C);
-	console.log(is);
-	plane.draw();
-	c.putImageData(imageData, 0, 0);
-	n += 0.1;
-}
-	var A2 = new point(100, 100);
-	var B2 = new point(300, 100);
-var A = new point(200, 200);
-var B = new point(300, 300);
-var C = new point(299, 199);
-
- // var AB = new line(A, B);
- // console.log(AB.getYfromX(199), "AB");
-
-//  var AB2 = new line(A2, B2);
-//  console.log(AB2.getYfromX(199), "AB2");
-
-// var plane = new surface();
-// console.log('surface');
-// plane.setLine(A, B);
-// plane.setPoint(C);
-// plane.draw();
-// setInterval(testDraw, 1000/5);
-
-// copy the image data back onto the canvas
-//c.putImageData(imageData, 0, 0); // at coords 0,0
 </script>
