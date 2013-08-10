@@ -1,4 +1,11 @@
-<canvas id="canvas1" width="500" height="500"></canvas>
+<html>
+<head>
+	<title>Cube 3D</title>
+	<meta charset="UTF-8" />
+</head>
+<body>
+
+<canvas id="canvas1" width="1000" height="1000"></canvas>
 <script>
 
 window.requestAnimFrame = (function(){
@@ -57,13 +64,11 @@ function drawLine(A, B) {
 	// 	}
 	// }
 	// return;
-	c.beginPath();
 	c.moveTo(A.x,A.y);
 	c.lineTo(B.x,B.y);
-	c.stroke();
 }
 
-var point = function point (x, y) {
+var point = function Point (x, y) {
 	this.x = x;
 	this.y = y;
 }
@@ -93,7 +98,7 @@ point.prototype = {
 	}
 }
 
-var point3d = function point3d (x, y, z) {
+var point3d = function Point3d (x, y, z) {
 	this.x = x;
 	this.y = y;
 	this.z = z;
@@ -139,7 +144,7 @@ point3d.prototype = {
 }
 
 
-var cube = function cube (A, a, transparent) {
+var cube = function Cube (A, a, transparent) {
 	this.a = a;
 	this.vertex = new Array();
 	this.vertex2d = new Array();
@@ -197,6 +202,11 @@ cube.prototype = {
 			this.vertex[i].rotateAroundAxis(axis, center2d, theta);
 		};
 	},
+	rotateAround: function (axis, center, theta) {
+		for (var i = this.vertex.length - 1; i >= 0; i--) {
+			this.vertex[i].rotateAroundAxis(axis, center, theta);
+		};
+	},
 	projectionOn: function (axis1, axis2) {
 		var maxZ = 0;
 		var maxZi;
@@ -211,6 +221,7 @@ cube.prototype = {
 	},
 	draw: function() {
 		this.projectionOn('x', 'y');
+		c.beginPath();
 		drawLine(this.vertex2d[0], this.vertex2d[1]);
 		drawLine(this.vertex2d[0], this.vertex2d[2]);
 		drawLine(this.vertex2d[0], this.vertex2d[3]);
@@ -229,7 +240,170 @@ cube.prototype = {
 		drawLine(this.vertex2d[5], this.vertex2d[7]);
 
 		drawLine(this.vertex2d[6], this.vertex2d[7]);
+		c.stroke();
 
+	}
+}
+
+var hilbertCube = function HilbertCube (A, a) {
+
+	var HCube = new cube(A, a, true);
+
+	HCube.draw = function () {
+		this.projectionOn('x', 'y');
+		//c.beginPath();
+		//drawLine(this.vertex2d[0], this.vertex2d[1]); //back up hotizontal
+
+		drawLine(this.vertex2d[0], this.vertex2d[2]); //back vertical left
+		drawLine(this.vertex2d[0], this.vertex2d[3]); // up left
+
+		drawLine(this.vertex2d[1], this.vertex2d[4]); // back vertical right
+		drawLine(this.vertex2d[1], this.vertex2d[5]); // up right
+
+		//drawLine(this.vertex2d[2], this.vertex2d[4]); // back down horizontal
+		drawLine(this.vertex2d[2], this.vertex2d[6]); // down left
+
+		//drawLine(this.vertex2d[3], this.vertex2d[5]); // up front horizontal
+		//drawLine(this.vertex2d[3], this.vertex2d[6]); // front vertical left
+
+		drawLine(this.vertex2d[4], this.vertex2d[7]); // down right
+		//drawLine(this.vertex2d[5], this.vertex2d[7]); // front vertical right
+
+		drawLine(this.vertex2d[6], this.vertex2d[7]); // down front horizontal
+		//c.stroke();
+
+	}
+
+	return HCube;
+}
+
+var hilbertIteration = function HilbertIteration (A, size, iteration) {
+
+	this.iteration = iteration;
+
+	this.hilbertCubes = new Array();
+	this.hilbertCubesCorners = new Array();
+
+	this.A = A;
+	this.size = size;
+	this.a = this.size / (Math.pow(2, iteration+1)-1);
+	//console.log(this.size+' '+this.a+' '+this.iteration);
+
+	this.center = new point3d();
+	this.center.x = this.A.x + this.size/2;
+	this.center.y = this.A.y + this.size/2;
+	this.center.z = this.A.z + this.size/2;
+
+	this.vertex = new Array();
+	this.vertex[0] = this.A;
+	this.vertex[1] = new point3d(this.A.x+this.size, this.A.y, this.A.z);
+	this.vertex[2] = new point3d(this.A.x, this.A.y+this.size, this.A.z);
+	this.vertex[3] = new point3d(this.A.x, this.A.y, this.A.z+this.size);
+	this.vertex[4] = new point3d(this.A.x+this.size, this.A.y+this.size, this.A.z);
+	this.vertex[5] = new point3d(this.A.x+this.size, this.A.y, this.A.z+this.size);
+	this.vertex[6] = new point3d(this.A.x, this.A.y+this.size, this.A.z+this.size);
+	this.vertex[7] = new point3d(this.A.x+this.size, this.A.y+this.size, this.A.z+this.size);
+
+	this.setHilbertCubes();
+
+	//new hilbertIteration(iteration-1);
+
+}
+
+hilbertIteration.prototype = {
+	setHilbertCubes: function() {
+
+		this.hilbertCubesCorners[0] = new point3d(this.A.x, this.A.y, this.A.z); // back left up
+		this.hilbertCubesCorners[1] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y, this.A.z); // back right up
+		this.hilbertCubesCorners[2] = new point3d(this.A.x, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z); // back left down
+		this.hilbertCubesCorners[3] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z); // back right down
+
+		this.hilbertCubesCorners[4] = new point3d(this.A.x, this.A.y, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front left up
+		this.hilbertCubesCorners[5] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front right up
+		this.hilbertCubesCorners[6] = new point3d(this.A.x, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front left down
+		this.hilbertCubesCorners[7] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front right down
+
+		if (this.iteration == 1) {
+			for (var i = this.hilbertCubesCorners.length - 1; i >= 0; i--) {
+				this.hilbertCubes[i] = new hilbertCube(this.hilbertCubesCorners[i], this.a)
+			};
+		} else {
+			for (var i = this.hilbertCubesCorners.length - 1; i >= 0; i--) {
+				this.hilbertCubes[i] = new hilbertIteration(this.hilbertCubesCorners[i], this.a*(Math.pow(2, this.iteration)-1), this.iteration-1)
+			};
+		}
+
+		this.hilbertCubes[6].spine('y', -1/2*Math.PI);
+		this.hilbertCubes[2].spine('y', -1/2*Math.PI);
+
+		this.hilbertCubes[7].spine('y', 1/2*Math.PI);
+		this.hilbertCubes[3].spine('y', 1/2*Math.PI);
+
+		this.hilbertCubes[4].spine('z', -1/2*Math.PI);
+		this.hilbertCubes[5].spine('z', 1/2*Math.PI);
+
+		this.hilbertCubes[0].spine('x', -1/2*Math.PI);
+		this.hilbertCubes[0].spine('y', Math.PI);
+		this.hilbertCubes[1].spine('x', -1/2*Math.PI);
+		this.hilbertCubes[1].spine('y', Math.PI);
+
+		//console.log(this.hilbertCubes[0].vertex[5]);
+
+	},
+	draw: function() {
+		for (var i = this.hilbertCubes.length - 1; i >= 0; i--) {
+			this.hilbertCubes[i].draw();
+		};
+		//console.log(this.hilbertCubes);
+		drawLine(this.hilbertCubes[4].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[6].vertex[5].projectionOn('x', 'y'));
+		drawLine(this.hilbertCubes[6].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[2].vertex[5].projectionOn('x', 'y'));
+		drawLine(this.hilbertCubes[2].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[0].vertex[5].projectionOn('x', 'y')); // ok
+		drawLine(this.hilbertCubes[0].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[1].vertex[5].projectionOn('x', 'y')); // ok
+		drawLine(this.hilbertCubes[1].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[3].vertex[5].projectionOn('x', 'y'));
+		drawLine(this.hilbertCubes[3].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[7].vertex[5].projectionOn('x', 'y'));
+		drawLine(this.hilbertCubes[7].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[5].vertex[5].projectionOn('x', 'y'));
+	},
+	translate: function(x, y, z) {
+		for (var i = this.hilbertCubes.length - 1; i >= 0; i--) {
+			this.hilbertCubes[i].translate(x, y, z);
+		};
+	},
+	spine: function(axis, theta) {
+		if(arguments[2] === undefined){
+			var center2d = new point(),
+				coordName1 = '',
+				coordName2 = '';
+			switch (axis) {
+				case axis = 'x':
+					coordName1 = 'y';
+					coordName2 = 'z';
+					break;
+				case axis = 'y':
+					coordName1 = 'z';
+					coordName2 = 'x';
+					break;
+				case axis = 'z':
+					coordName1 = 'x';
+					coordName2 = 'y';
+					break;
+
+			}
+			arguments[2] = this.center.projectionOn(coordName1, coordName2);
+		}
+
+		for (var i = this.vertex.length - 1; i >= 0; i--) {
+			this.vertex[i].rotateAroundAxis(axis, arguments[2], theta);
+		};
+
+		if (this.iteration == 1) {
+			for (var i = this.hilbertCubes.length - 1; i >= 0; i--) {
+				this.hilbertCubes[i].rotateAround(axis, arguments[2], theta);
+			};
+		} else {
+			for (var i = this.hilbertCubes.length - 1; i >= 0; i--) {
+				this.hilbertCubes[i].spine(axis, theta, arguments[2]);
+			};
+		}
 	}
 }
 
@@ -244,19 +418,66 @@ height = element.height;
 // create a new pixel array
 imageData = c.createImageData(width, height);
 
-var thetaX = 1, thetaY = 1, drag = 0;
+var thetaX = 0.005, thetaY = 0.005, drag = 0, count = 0;
 
 function reset () {
  	//imageData = c.createImageData(imageData);
- 	 c.clearRect(0,0,400,400); 
+ 	 c.clearRect(0,0,1000,1000); 
 }
+
+function setPoints () {
+	A = new point3d(150, 150, 150);
+	m = new cube(A, 150);
+}
+// console.time('setPoint');
+// for (var i = 1000000; i >= 0; i--) {
+// 	setPoints();
+// };
+// console.timeEnd('setPoint');
+
+// console.time('spine');
+// for (var i = 100000; i >= 0; i--) {
+// 	m.spine('y', thetaX);
+// 	m.spine('x', thetaY);
+// };
+// console.timeEnd('spine');
+
+// console.time('draw');
+// for (var i = 10000; i >= 0; i--) {
+// 	m.draw();
+// };
+// console.timeEnd('draw');
+
+// console.time('draw + reset');
+// for (var i = 10000; i >= 0; i--) {
+// 	m.draw();
+// 	reset();
+// };
+// console.timeEnd('draw + reset');
+
 function draw3d () {
+
+	requestAnimFrame(draw3d);
+
+	//setPoints();
+
 	reset();
-	var A = new point3d(150, 150, 150);
-	 m = new cube(A, 150);
-	 m.spine('y', thetaX);
-	 m.spine('x', thetaY);
-	 m.draw();
+
+	//m.spine('y', thetaX);
+	//m.spine('x', thetaY);
+	//m.draw();
+
+	//A = new point3d(150, 150, 150);
+	//h = new hilbertCube(A, 180);
+	//h.spine('y', 0.1*Math.PI);
+	//h.spine('x', 0.1*Math.PI);
+	c.beginPath();
+	A = new point3d(200, 200, 200);
+	h = new hilbertIteration(A, 550, 2);
+	h.spine('y', thetaX);
+	h.spine('x', thetaY);
+	h.draw();
+	c.stroke();
 
 	//c.putImageData(imageData, 0, 0);
 	if(!drag){
@@ -264,11 +485,10 @@ function draw3d () {
 		thetaY += 0.01;
 	}
 
-	requestAnimFrame(draw3d);
-
 }
 
 // setInterval(draw3d, 1000/30);
+
 requestAnimFrame(draw3d);
 
 function getMousePos(element, evt) {
@@ -282,8 +502,8 @@ function getMousePos(element, evt) {
 element.addEventListener('mousemove', function(evt) {
 	if (drag) {
 		mousePos2 = getMousePos(element, evt);
-		thetaX += (mousePos2.x-mousePos1.x)/400*Math.PI;
-		thetaY += (mousePos2.y-mousePos1.y)/400*Math.PI;
+		thetaX += (mousePos2.x-mousePos1.x)/1000*Math.PI;
+		thetaY += (mousePos2.y-mousePos1.y)/1000*Math.PI;
 		mousePos1 = getMousePos(element, evt);
 	}
 }, false);
@@ -296,3 +516,6 @@ element.addEventListener('mouseup', function(evt) {
 	drag=false;
 }, false);
 </script>
+
+</body>
+</html>
