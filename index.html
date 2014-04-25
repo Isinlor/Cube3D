@@ -149,13 +149,18 @@ var cube = function Cube (A, a, transparent) {
 	this.vertex = new Array();
 	this.vertex2d = new Array();
 	this.vertex[0] = A;
-	this.vertex[1] = new point3d(A.x+a, A.y, A.z);
-	this.vertex[2] = new point3d(A.x, A.y+a, A.z);
-	this.vertex[3] = new point3d(A.x, A.y, A.z+a);
-	this.vertex[4] = new point3d(A.x+a, A.y+a, A.z);
-	this.vertex[5] = new point3d(A.x+a, A.y, A.z+a);
-	this.vertex[6] = new point3d(A.x, A.y+a, A.z+a);
-	this.vertex[7] = new point3d(A.x+a, A.y+a, A.z+a);
+
+	Aax = A.x+a;
+	Aay = A.y+a;
+	Aaz = A.z+a;
+
+	this.vertex[1] = new point3d(Aax, A.y, A.z);
+	this.vertex[2] = new point3d(A.x, Aay, A.z);
+	this.vertex[3] = new point3d(A.x, A.y, Aaz);
+	this.vertex[4] = new point3d(Aax, Aay, A.z);
+	this.vertex[5] = new point3d(Aax, A.y, Aaz);
+	this.vertex[6] = new point3d(A.x, Aay, Aaz);
+	this.vertex[7] = new point3d(Aax, Aay, Aaz);
 
 	this.center = new point3d();
 	this.center.x = this.vertex[0].x + this.a/2;
@@ -212,7 +217,7 @@ cube.prototype = {
 		var maxZi;
 		for (var i = this.vertex.length - 1; i >= 0; i--) {
 			this.vertex2d[i] = this.vertex[i].projectionOn(axis1, axis2);
-			if (maxZ < this.vertex[i].z) {
+			if (!this.transparent && maxZ < this.vertex[i].z) {
 				maxZ = this.vertex[i].z;
 				maxZi = i;
 			}
@@ -313,38 +318,46 @@ var hilbertIteration = function HilbertIteration (A, size, iteration) {
 hilbertIteration.prototype = {
 	setHilbertCubes: function() {
 
-		this.hilbertCubesCorners[0] = new point3d(this.A.x, this.A.y, this.A.z); // back left up
-		this.hilbertCubesCorners[1] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y, this.A.z); // back right up
-		this.hilbertCubesCorners[2] = new point3d(this.A.x, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z); // back left down
-		this.hilbertCubesCorners[3] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z); // back right down
+		var nexta = this.a*(Math.pow(2, this.iteration)-1)+this.a;
+		var nextx = this.A.x+nexta;
+		var nexty = this.A.y+nexta;
+		var nextz = this.A.z+nexta;
 
-		this.hilbertCubesCorners[4] = new point3d(this.A.x, this.A.y, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front left up
-		this.hilbertCubesCorners[5] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front right up
-		this.hilbertCubesCorners[6] = new point3d(this.A.x, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front left down
-		this.hilbertCubesCorners[7] = new point3d(this.A.x+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.y+this.a*(Math.pow(2, this.iteration)-1)+this.a, this.A.z+this.a*(Math.pow(2, this.iteration)-1)+this.a); // front right down
+		this.hilbertCubesCorners[0] = new point3d(this.A.x, this.A.y, this.A.z); // back left up
+		this.hilbertCubesCorners[1] = new point3d(nextx, this.A.y, this.A.z); // back right up
+		this.hilbertCubesCorners[2] = new point3d(this.A.x, nexty, this.A.z); // back left down
+		this.hilbertCubesCorners[3] = new point3d(nextx, nexty, this.A.z); // back right down
+
+		this.hilbertCubesCorners[4] = new point3d(this.A.x, this.A.y, nextz); // front left up
+		this.hilbertCubesCorners[5] = new point3d(nextx, this.A.y, nextz); // front right up
+		this.hilbertCubesCorners[6] = new point3d(this.A.x, nexty, nextz); // front left down
+		this.hilbertCubesCorners[7] = new point3d(nextx, nexty, nextz); // front right down
 
 		if (this.iteration == 1) {
 			for (var i = this.hilbertCubesCorners.length - 1; i >= 0; i--) {
 				this.hilbertCubes[i] = new hilbertCube(this.hilbertCubesCorners[i], this.a)
 			};
 		} else {
+			var nextCount = (Math.pow(2, this.iteration)-1);
 			for (var i = this.hilbertCubesCorners.length - 1; i >= 0; i--) {
-				this.hilbertCubes[i] = new hilbertIteration(this.hilbertCubesCorners[i], this.a*(Math.pow(2, this.iteration)-1), this.iteration-1)
+				this.hilbertCubes[i] = new hilbertIteration(this.hilbertCubesCorners[i], this.a*nextCount, this.iteration-1)
 			};
 		}
 
-		this.hilbertCubes[6].spine('y', -1/2*Math.PI);
-		this.hilbertCubes[2].spine('y', -1/2*Math.PI);
+		var halfPI = 1/2*Math.PI;
 
-		this.hilbertCubes[7].spine('y', 1/2*Math.PI);
-		this.hilbertCubes[3].spine('y', 1/2*Math.PI);
+		this.hilbertCubes[6].spine('y', -halfPI);
+		this.hilbertCubes[2].spine('y', -halfPI);
 
-		this.hilbertCubes[4].spine('z', -1/2*Math.PI);
-		this.hilbertCubes[5].spine('z', 1/2*Math.PI);
+		this.hilbertCubes[7].spine('y', halfPI);
+		this.hilbertCubes[3].spine('y', halfPI);
 
-		this.hilbertCubes[0].spine('x', -1/2*Math.PI);
+		this.hilbertCubes[4].spine('z', -halfPI);
+		this.hilbertCubes[5].spine('z', halfPI);
+
+		this.hilbertCubes[0].spine('x', -halfPI);
 		this.hilbertCubes[0].spine('y', Math.PI);
-		this.hilbertCubes[1].spine('x', -1/2*Math.PI);
+		this.hilbertCubes[1].spine('x', -halfPI);
 		this.hilbertCubes[1].spine('y', Math.PI);
 
 		//console.log(this.hilbertCubes[0].vertex[5]);
@@ -357,8 +370,8 @@ hilbertIteration.prototype = {
 		//console.log(this.hilbertCubes);
 		drawLine(this.hilbertCubes[4].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[6].vertex[5].projectionOn('x', 'y'));
 		drawLine(this.hilbertCubes[6].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[2].vertex[5].projectionOn('x', 'y'));
-		drawLine(this.hilbertCubes[2].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[0].vertex[5].projectionOn('x', 'y')); // ok
-		drawLine(this.hilbertCubes[0].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[1].vertex[5].projectionOn('x', 'y')); // ok
+		drawLine(this.hilbertCubes[2].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[0].vertex[5].projectionOn('x', 'y'));
+		drawLine(this.hilbertCubes[0].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[1].vertex[5].projectionOn('x', 'y'));
 		drawLine(this.hilbertCubes[1].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[3].vertex[5].projectionOn('x', 'y'));
 		drawLine(this.hilbertCubes[3].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[7].vertex[5].projectionOn('x', 'y'));
 		drawLine(this.hilbertCubes[7].vertex[3].projectionOn('x', 'y'), this.hilbertCubes[5].vertex[5].projectionOn('x', 'y'));
@@ -366,6 +379,9 @@ hilbertIteration.prototype = {
 	translate: function(x, y, z) {
 		for (var i = this.hilbertCubes.length - 1; i >= 0; i--) {
 			this.hilbertCubes[i].translate(x, y, z);
+		};
+		for (var i = this.vertex.length - 1; i >= 0; i--) {
+			this.vertex[i].translate(x, y, z);
 		};
 	},
 	spine: function(axis, theta) {
